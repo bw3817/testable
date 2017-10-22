@@ -10,6 +10,7 @@ that probably require unit tests.
 import os
 import pyclbr
 import json
+import click
 
 
 class Result:
@@ -111,20 +112,25 @@ class Testable:
 
         return results
 
-    def to_screen(self, results):
-        for module, result in results.items():
-            print('\n', module)
-            for r in result:
-                print('\t', r.obj_type, ':', r.obj.name, ', line', r.obj.lineno)
-                if r.routes:
-                    print('\t', r.routes)
-                if r.obj_type == 'Class':
-                    for method, lineno in r.obj.methods.items():
-                        print('\t\tMethod: {}, line {}'.format(method, lineno))
+
+@click.command()
+@click.option(
+    '--path', 'top_dir',
+    default='.',
+    type=click.Path(exists=True),
+    help="Top-level directory to analyze"
+)
+@click.option(
+    '--extensions',
+    default=('.py', '.sh'),
+    help="List of file types (e.g., .py, .sh)"
+)
+def analyze(top_dir, extensions):
+    testable = Testable(top_dir)
+    results = testable.find(extensions)
+    data = json.dumps(results, cls=ResultJSONEncoder, indent=4)
+    print(data)
 
 
 if __name__ == '__main__':
-    testable = Testable('/path/to/your/project')
-    results = testable.find()
-    data = json.dumps(results, cls=ResultJSONEncoder, indent=4)
-    print(data)
+    analyze()
